@@ -76,7 +76,28 @@ jobs:
           test -f godot_project/AfghanWarrior/project.godot
           test -f godot_project/AfghanWarrior/export_presets.cfg
 
-          echo "Godot project generated successfully."
+      - name: Fix Android Export Preset
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("godot_project/AfghanWarrior/export_presets.cfg")
+          content = p.read_text(encoding="utf-8")
+
+          content = "\n".join(
+              line for line in content.splitlines()
+              if not line.startswith("gradle_build/min_sdk=")
+              and not line.startswith("gradle_build/target_sdk=")
+          ) + "\n"
+
+          p.write_text(content, encoding="utf-8")
+
+          assert 'gradle_build/use_gradle_build=false' in content
+          assert 'gradle_build/min_sdk=' not in content
+          assert 'gradle_build/target_sdk=' not in content
+
+          print("Android export preset corrected.")
+          PY
 
       - name: Create Android Debug Keystore
         run: |
@@ -121,7 +142,7 @@ jobs:
 
           test -s build/AfghanWarrior.apk
 
-          echo "APK generated successfully!"
+          echo "APK successfully created!"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
